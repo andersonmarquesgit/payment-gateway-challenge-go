@@ -25,9 +25,15 @@ func NewPaymentsHandler(storage *repository.PaymentsRepository, bankClient *bank
 	}
 }
 
-// GetHandler returns an http.HandlerFunc that handles HTTP GET requests.
-// It retrieves a payment record by its ID from the storage.
-// The ID is expected to be part of the URL.
+// GetHandler retrieves a payment by ID
+// @Summary Get payment
+// @Description Retrieves a previously processed payment
+// @Tags payments
+// @Produce json
+// @Param id path string true "Payment ID"
+// @Success 200 {object} models.PostPaymentResponse
+// @Failure 204 {string} string
+// @Router /api/payments/{id} [get]
 func (h *PaymentsHandler) GetHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
@@ -45,6 +51,17 @@ func (h *PaymentsHandler) GetHandler() http.HandlerFunc {
 	}
 }
 
+// PostHandler handles payment creation
+// @Summary Create a payment
+// @Description Processes a card payment through the payment gateway
+// @Tags payments
+// @Accept json
+// @Produce json
+// @Param payment body models.PostPaymentRequest true "Payment request"
+// @Success 200 {object} models.PostPaymentResponse
+// @Failure 400 {object} models.PostPaymentResponse
+// @Failure 502 {string} string
+// @Router /api/payments [post]
 func (ph *PaymentsHandler) PostHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 

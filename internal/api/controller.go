@@ -2,10 +2,8 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
-	"github.com/cko-recruitment/payment-gateway-challenge-go/docs"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/client/bank"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/handlers"
 	httpSwagger "github.com/swaggo/http-swagger"
@@ -29,7 +27,7 @@ func (a *Api) PingHandler() http.HandlerFunc {
 // SwaggerHandler returns an http.HandlerFunc that handles HTTP Swagger related requests.
 func (a *Api) SwaggerHandler() http.HandlerFunc {
 	return httpSwagger.Handler(
-		httpSwagger.URL(fmt.Sprintf("http://%s/swagger/doc.json", docs.SwaggerInfo.Host)),
+		httpSwagger.URL("/swagger/doc.json"),
 	)
 }
 
