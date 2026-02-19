@@ -1,21 +1,25 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
+	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/client/bank"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/models"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/repository"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetPaymentHandler(t *testing.T) {
 	payment := models.PostPaymentResponse{
 		Id:                 "test-id",
 		PaymentStatus:      "test-successful-status",
-		CardNumberLastFour: 1234,
+		CardNumberLastFour: "4111111111111111",
 		ExpiryMonth:        10,
 		ExpiryYear:         2035,
 		Currency:           "GBP",
@@ -24,7 +28,7 @@ func TestGetPaymentHandler(t *testing.T) {
 	ps := repository.NewPaymentsRepository()
 	ps.AddPayment(payment)
 
-	payments := NewPaymentsHandler(ps)
+	payments := NewPaymentsHandler(ps, bank.NewClient())
 
 	r := chi.NewRouter()
 	r.Get("/api/payments/{id}", payments.GetHandler())
@@ -66,6 +70,87 @@ func TestGetPaymentHandler(t *testing.T) {
 		r.ServeHTTP(w, req)
 
 		// Check the HTTP status code in the response
-		assert.Equal(t, http.StatusNotFound, w.Code)
+		assert.Equal(t, http.StatusNoContent, w.Code)
 	})
+}
+
+func TestPostPayment_Authorized(t *testing.T) {
+	repo := repository.NewPaymentsRepository()
+	handler := NewPaymentsHandler(repo, bank.NewClient())
+
+	server := httptest.NewServer(handler.PostHandler())
+	defer server.Close()
+
+	payload := `{
+		"card_number": "4111111111111111",
+		"expiry_month": 12,
+		"expiry_year": 2026,
+		"currency": "GBP",
+		"amount": 1000,
+		"cvv": "123"
+	}`
+
+	resp, err := http.Post(server.URL, "application/json", strings.NewReader(payload))
+	require.NoError(t, err)
+
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var response models.PostPaymentResponse
+	json.NewDecoder(resp.Body).Decode(&response)
+
+	require.Equal(t, models.Authorized, response.PaymentStatus)
+}
+
+func TestPostPayment_Declined(t *testing.T) {
+	repo := repository.NewPaymentsRepository()
+	handler := NewPaymentsHandler(repo, bank.NewClient())
+
+	server := httptest.NewServer(handler.PostHandler())
+	defer server.Close()
+
+	payload := `{
+		"card_number": "4111111111111112",
+		"expiry_month": 12,
+		"expiry_year": 2026,
+		"currency": "GBP",
+		"amount": 1000,
+		"cvv": "123"
+	}`
+
+	resp, err := http.Post(server.URL, "application/json", strings.NewReader(payload))
+	require.NoError(t, err)
+
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var response models.PostPaymentResponse
+	json.NewDecoder(resp.Body).Decode(&response)
+
+	require.Equal(t, models.Declined, response.PaymentStatus)
+}
+
+func TestPostPayment_Rejected(t *testing.T) {
+	repo := repository.NewPaymentsRepository()
+	handler := NewPaymentsHandler(repo, bank.NewClient())
+
+	server := httptest.NewServer(handler.PostHandler())
+	defer server.Close()
+
+	payload := `{
+		"card_number": "4111111111111111",
+		"expiry_month": 12,
+		"expiry_year": 2026,
+		"currency": "GBP",
+		"amount": 1000,
+		"cvv": "12"
+	}`
+
+	resp, err := http.Post(server.URL, "application/json", strings.NewReader(payload))
+	require.NoError(t, err)
+
+	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+	var response models.PostPaymentResponse
+	json.NewDecoder(resp.Body).Decode(&response)
+
+	require.Equal(t, models.Rejected, response.PaymentStatus)
 }
