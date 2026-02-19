@@ -60,9 +60,9 @@ This separation allows the system to be easily testable, maintainable, and exten
 ## Assumptions
 
 - The acquiring bank behavior is deterministic and defined by the simulator:
-    - Card numbers ending with an odd digit → Authorized
-    - Card numbers ending with an even digit → Declined
-    - Card numbers ending with zero → Bank unavailable (503)
+    - Card numbers ending with an odd number (1, 3, 5, 7, 9): Authorized
+    - Card numbers ending with an even number (2, 4, 6, 8): Declined
+    - Card numbers ending zero (0): Bank unavailable (503 Service Unavailable)
 
 - Currency validation is limited to a small, predefined subset as required by the challenge.
 
