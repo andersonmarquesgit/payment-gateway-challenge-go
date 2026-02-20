@@ -101,6 +101,19 @@ go run main.go
 The API can be tested using Postman or via automated tests.
 
 Create a Payment
+```
+curl --location 'http://localhost:8090/api/payments' \
+--header 'Content-Type: application/json' \
+--data '{
+  "card_number": "4111111111111111",
+  "expiry_month": 12,
+  "expiry_year": 2026,
+  "currency": "GBP",
+  "amount": 1050,
+  "cvv": "123"
+}
+'
+```
 
 POST /api/payments
 
